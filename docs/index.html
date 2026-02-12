@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ZIP Image Resizer - Team Share Page</title>
+    <style>
+      :root {
+        --bg: #f4f6f8;
+        --card: #ffffff;
+        --text: #102a43;
+        --muted: #486581;
+        --accent: #0f766e;
+        --line: #d9e2ec;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: "Segoe UI", Tahoma, sans-serif;
+        background: linear-gradient(160deg, #f4f6f8, #e9f5f2);
+        color: var(--text);
+      }
+      .wrap {
+        max-width: 880px;
+        margin: 40px auto;
+        padding: 0 20px;
+      }
+      .card {
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 24px;
+        box-shadow: 0 12px 32px rgba(16, 42, 67, 0.08);
+      }
+      h1 { margin: 0 0 8px; }
+      p { color: var(--muted); line-height: 1.5; }
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin: 18px 0;
+      }
+      .btn {
+        text-decoration: none;
+        padding: 10px 14px;
+        border-radius: 10px;
+        border: 1px solid var(--accent);
+        font-weight: 600;
+      }
+      .btn.primary {
+        background: var(--accent);
+        color: #fff;
+      }
+      .btn.secondary {
+        color: var(--accent);
+        background: #fff;
+      }
+      ol { line-height: 1.6; }
+      code {
+        background: #f0f4f8;
+        border: 1px solid #d9e2ec;
+        padding: 2px 5px;
+        border-radius: 6px;
+      }
+      pre {
+        background: #0b1f33;
+        color: #e3eefb;
+        padding: 12px;
+        border-radius: 10px;
+        overflow-x: auto;
+      }
+      .foot { margin-top: 18px; font-size: 14px; color: var(--muted); }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="card">
+        <h1>ZIP Image Resizer</h1>
+        <p>
+          Team utility to resize every image in a ZIP file to <strong>300px width</strong>
+          while preserving original proportions.
+        </p>
+
+        <div class="actions">
+          <a class="btn primary" href="../">Open Local App</a>
+          <a class="btn secondary" href="https://github.com/jasonscribd/zip-image-resizer-webapp">View GitHub Repo</a>
+        </div>
+
+        <h2>How coworkers can run it</h2>
+        <ol>
+          <li>Install Node.js 18+.</li>
+          <li>Clone the repository.</li>
+          <li>Install dependencies and start the app.</li>
+          <li>Open <code>http://localhost:3000</code> in a browser.</li>
+        </ol>
+
+        <pre><code>git clone https://github.com/jasonscribd/zip-image-resizer-webapp.git
+cd zip-image-resizer-webapp
+npm install
+npm start</code></pre>
+
+        <p class="foot">
+          Supported formats: <code>jpg</code>, <code>jpeg</code>, <code>png</code>, <code>webp</code>, <code>tiff</code>, <code>gif</code>, <code>avif</code>.
+        </p>
+      </div>
+    </div>
+  </body>
+</html>

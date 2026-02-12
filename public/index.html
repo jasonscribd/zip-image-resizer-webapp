@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ZIP Image Resizer</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="container">
+      <h1>ZIP Image Resizer</h1>
+      <p>Upload a ZIP of images. The app resizes each image to 300px width while preserving aspect ratio.</p>
+
+      <form id="upload-form">
+        <label for="zip-file">ZIP file</label>
+        <input id="zip-file" name="zipFile" type="file" accept=".zip,application/zip" required />
+        <button type="submit">Resize and Download</button>
+      </form>
+
+      <p id="status" aria-live="polite"></p>
+    </main>
+
+    <script src="/app.js"></script>
+  </body>
+</html>
