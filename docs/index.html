@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ZIP Image Resizer - Team Share Page</title>
+    <title>ZIP Image Resizer</title>
     <style>
       :root {
         --bg: #f4f6f8;
@@ -16,12 +16,13 @@
       * { box-sizing: border-box; }
       body {
         margin: 0;
-        font-family: "Segoe UI", Tahoma, sans-serif;
-        background: linear-gradient(160deg, #f4f6f8, #e9f5f2);
+        min-height: 100vh;
+        background: linear-gradient(165deg, #eef3f8, #e7f5f2);
         color: var(--text);
+        font-family: "Segoe UI", Tahoma, sans-serif;
       }
       .wrap {
-        max-width: 880px;
+        max-width: 860px;
         margin: 40px auto;
         padding: 0 20px;
       }
@@ -33,76 +34,252 @@
         box-shadow: 0 12px 32px rgba(16, 42, 67, 0.08);
       }
       h1 { margin: 0 0 8px; }
-      p { color: var(--muted); line-height: 1.5; }
-      .actions {
+      p { margin: 0 0 12px; color: var(--muted); line-height: 1.5; }
+      .row {
         display: flex;
-        flex-wrap: wrap;
         gap: 10px;
-        margin: 18px 0;
+        flex-wrap: wrap;
+        margin: 16px 0;
       }
-      .btn {
-        text-decoration: none;
-        padding: 10px 14px;
+      input[type='file'] {
+        flex: 1;
+        min-width: 220px;
+        border: 1px solid #cbd5e1;
         border-radius: 10px;
-        border: 1px solid var(--accent);
-        font-weight: 600;
-      }
-      .btn.primary {
-        background: var(--accent);
-        color: #fff;
-      }
-      .btn.secondary {
-        color: var(--accent);
+        padding: 10px;
         background: #fff;
       }
-      ol { line-height: 1.6; }
-      code {
-        background: #f0f4f8;
-        border: 1px solid #d9e2ec;
-        padding: 2px 5px;
-        border-radius: 6px;
-      }
-      pre {
-        background: #0b1f33;
-        color: #e3eefb;
-        padding: 12px;
+      button {
+        border: 1px solid var(--accent);
         border-radius: 10px;
-        overflow-x: auto;
+        padding: 10px 14px;
+        font-weight: 600;
+        background: var(--accent);
+        color: #fff;
+        cursor: pointer;
       }
-      .foot { margin-top: 18px; font-size: 14px; color: var(--muted); }
+      button:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+      .meta {
+        margin-top: 12px;
+        font-size: 14px;
+        color: var(--muted);
+      }
+      .mono {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      }
+      .link {
+        margin-top: 14px;
+      }
+      .link a {
+        color: var(--accent);
+        text-decoration: none;
+        font-weight: 600;
+      }
     </style>
   </head>
   <body>
     <div class="wrap">
       <div class="card">
         <h1>ZIP Image Resizer</h1>
-        <p>
-          Team utility to resize every image in a ZIP file to <strong>300px width</strong>
-          while preserving original proportions.
-        </p>
+        <p>Upload a ZIP from your laptop. This page resizes each image to <strong>300px width</strong> while preserving aspect ratio, then downloads a new ZIP.</p>
+        <p>Everything runs locally in your browser. No server upload.</p>
 
-        <div class="actions">
-          <a class="btn primary" href="../">Open Local App</a>
-          <a class="btn secondary" href="https://github.com/jasonscribd/zip-image-resizer-webapp">View GitHub Repo</a>
+        <div class="row">
+          <input id="zipFile" type="file" accept=".zip,application/zip" />
+          <button id="runBtn">Resize and Download</button>
         </div>
 
-        <h2>How coworkers can run it</h2>
-        <ol>
-          <li>Install Node.js 18+.</li>
-          <li>Clone the repository.</li>
-          <li>Install dependencies and start the app.</li>
-          <li>Open <code>http://localhost:3000</code> in a browser.</li>
-        </ol>
+        <div id="status" class="meta">Ready.</div>
+        <div id="summary" class="meta mono"></div>
 
-        <pre><code>git clone https://github.com/jasonscribd/zip-image-resizer-webapp.git
-cd zip-image-resizer-webapp
-npm install
-npm start</code></pre>
-
-        <p class="foot">
-          Supported formats: <code>jpg</code>, <code>jpeg</code>, <code>png</code>, <code>webp</code>, <code>tiff</code>, <code>gif</code>, <code>avif</code>.
-        </p>
+        <div class="link">
+          <a href="https://github.com/jasonscribd/zip-image-resizer-webapp" target="_blank" rel="noopener noreferrer">View source on GitHub</a>
+        </div>
       </div>
     </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+    <script>
+      const TARGET_WIDTH = 300;
+      const IMAGE_EXTENSIONS = new Set(['.jpg', '.jpeg', '.png', '.webp', '.gif', '.avif', '.tiff']);
+
+      const MIME_BY_EXT = {
+        '.jpg': 'image/jpeg',
+        '.jpeg': 'image/jpeg',
+        '.png': 'image/png',
+        '.webp': 'image/webp',
+        '.gif': 'image/gif',
+        '.avif': 'image/avif',
+        '.tiff': 'image/tiff',
+      };
+
+      const EXT_BY_MIME = {
+        'image/jpeg': '.jpg',
+        'image/png': '.png',
+        'image/webp': '.webp',
+      };
+
+      const zipInput = document.getElementById('zipFile');
+      const runBtn = document.getElementById('runBtn');
+      const statusEl = document.getElementById('status');
+      const summaryEl = document.getElementById('summary');
+
+      function extname(filePath) {
+        const clean = filePath.toLowerCase();
+        const i = clean.lastIndexOf('.');
+        return i >= 0 ? clean.slice(i) : '';
+      }
+
+      function dirname(filePath) {
+        const i = filePath.lastIndexOf('/');
+        return i >= 0 ? filePath.slice(0, i + 1) : '';
+      }
+
+      function basenameWithoutExt(filePath) {
+        const base = filePath.slice(filePath.lastIndexOf('/') + 1);
+        const i = base.lastIndexOf('.');
+        return i >= 0 ? base.slice(0, i) : base;
+      }
+
+      function pickOutputMime(inputExt) {
+        if (inputExt === '.jpg' || inputExt === '.jpeg') return 'image/jpeg';
+        if (inputExt === '.png') return 'image/png';
+        if (inputExt === '.webp') return 'image/webp';
+        return 'image/png';
+      }
+
+      function canvasToBlob(canvas, type, quality) {
+        return new Promise((resolve) => canvas.toBlob(resolve, type, quality));
+      }
+
+      async function resizeImage(uint8, inputExt) {
+        const inputMime = MIME_BY_EXT[inputExt] || 'application/octet-stream';
+        const inputBlob = new Blob([uint8], { type: inputMime });
+
+        const bitmap = await createImageBitmap(inputBlob);
+        const scale = Math.min(1, TARGET_WIDTH / bitmap.width);
+        const targetWidth = Math.max(1, Math.round(bitmap.width * scale));
+        const targetHeight = Math.max(1, Math.round(bitmap.height * scale));
+
+        const canvas = document.createElement('canvas');
+        canvas.width = targetWidth;
+        canvas.height = targetHeight;
+
+        const ctx = canvas.getContext('2d');
+        if (!ctx) throw new Error('Canvas unavailable in this browser.');
+        ctx.drawImage(bitmap, 0, 0, targetWidth, targetHeight);
+        bitmap.close();
+
+        const preferredMime = pickOutputMime(inputExt);
+        let outBlob = await canvasToBlob(canvas, preferredMime, 0.9);
+        if (!outBlob) outBlob = await canvasToBlob(canvas, 'image/png');
+        if (!outBlob) throw new Error('Failed to encode resized image.');
+
+        const outBuffer = await outBlob.arrayBuffer();
+        const outMime = outBlob.type || 'image/png';
+        const outExt = EXT_BY_MIME[outMime] || '.png';
+
+        return {
+          bytes: new Uint8Array(outBuffer),
+          outExt,
+          width: targetWidth,
+          height: targetHeight,
+        };
+      }
+
+      function downloadBlob(blob, filename) {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+      }
+
+      runBtn.addEventListener('click', async () => {
+        const file = zipInput.files && zipInput.files[0];
+        if (!file) {
+          statusEl.textContent = 'Select a ZIP file first.';
+          return;
+        }
+
+        runBtn.disabled = true;
+        summaryEl.textContent = '';
+
+        try {
+          statusEl.textContent = 'Reading ZIP...';
+          const sourceZip = await JSZip.loadAsync(file);
+          const outputZip = new JSZip();
+
+          const names = Object.keys(sourceZip.files);
+          let resized = 0;
+          let copied = 0;
+          let skipped = 0;
+          let totalImages = 0;
+          let doneImages = 0;
+
+          for (const name of names) {
+            const entry = sourceZip.files[name];
+            if (entry.dir) continue;
+
+            const ext = extname(name);
+            if (!IMAGE_EXTENSIONS.has(ext)) {
+              const passThrough = await entry.async('uint8array');
+              outputZip.file(name, passThrough);
+              copied += 1;
+              continue;
+            }
+
+            totalImages += 1;
+          }
+
+          for (const name of names) {
+            const entry = sourceZip.files[name];
+            if (entry.dir) continue;
+
+            const ext = extname(name);
+            if (!IMAGE_EXTENSIONS.has(ext)) continue;
+
+            doneImages += 1;
+            statusEl.textContent = `Processing images ${doneImages}/${totalImages}...`;
+
+            try {
+              const bytes = await entry.async('uint8array');
+              const result = await resizeImage(bytes, ext);
+              const outName = dirname(name) + basenameWithoutExt(name) + result.outExt;
+              outputZip.file(outName, result.bytes);
+              resized += 1;
+            } catch {
+              const original = await entry.async('uint8array');
+              outputZip.file(name, original);
+              skipped += 1;
+            }
+          }
+
+          if (resized === 0) {
+            throw new Error('No supported images were resized.');
+          }
+
+          statusEl.textContent = 'Building output ZIP...';
+          const outBlob = await outputZip.generateAsync({ type: 'blob', compression: 'DEFLATE' });
+
+          const baseName = file.name.replace(/\.zip$/i, '') || 'images';
+          const outName = `${baseName}-resized-${TARGET_WIDTH}px.zip`;
+          downloadBlob(outBlob, outName);
+
+          statusEl.textContent = 'Done. Download started.';
+          summaryEl.textContent = `resized=${resized} copied_non_images=${copied} fallback_original=${skipped}`;
+        } catch (err) {
+          statusEl.textContent = err && err.message ? err.message : 'Failed to process ZIP.';
+        } finally {
+          runBtn.disabled = false;
+        }
+      });
+    </script>
   </body>
 </html>
